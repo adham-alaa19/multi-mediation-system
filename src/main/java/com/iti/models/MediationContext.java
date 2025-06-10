@@ -23,6 +23,10 @@ public class MediationContext {
         this.fields = fields;
         this.serviceType = serviceType;
     }
+    
+        public MediationContext(Map<String, Object> fields ) {
+        this.fields = fields;
+    }
 
     // Getters and Setters
 

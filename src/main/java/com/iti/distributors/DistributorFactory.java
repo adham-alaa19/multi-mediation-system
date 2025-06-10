@@ -11,7 +11,7 @@ package com.iti.distributors;
 public class DistributorFactory {
     public static DistributorStrategy createDistributor(String method) {
         switch (method.toUpperCase()) {
-            case "FTP":
+            case "SFTP":
                 return new SFTPDistributor();
             case "SCP":
                 return new SCPDistributor();
