@@ -20,7 +20,7 @@ import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RESTCollector implements CollectorStrategy {
+public abstract class RESTCollector implements CollectorStrategy {
 
    
     private static final String ARCHIVE_DIR = ConfigUtil.get("archive.processed.path");
