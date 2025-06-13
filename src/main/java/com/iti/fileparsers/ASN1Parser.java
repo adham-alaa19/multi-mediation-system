@@ -1,9 +1,14 @@
-package com.iti.parsers;
+package com.iti.fileparsers;
 
 import java.io.*;
+import java.text.ParseException;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.util.ASN1Dump;
+import java.nio.charset.StandardCharsets;
+
 
 /**
  * Parses ASN.1 encoded CDR files into Map objects for mediation processing.
@@ -40,7 +45,7 @@ public class ASN1Parser {
     /**
      * Recursively processes ASN.1 sequence into key-value pairs.
      */
-    private void parseAsn1Sequence(ASN1Sequence sequence, Map<String, Object> outputMap) {
+    private void parseAsn1Sequence(ASN1Sequence sequence, Map<String, Object> outputMap) throws ParseException {
         Enumeration<ASN1Encodable> elements = sequence.getObjects();
         int fieldIndex = 1; // Telecom CDRs often use positional fields
         
@@ -59,14 +64,12 @@ public class ASN1Parser {
         }
     }
 
-    /**
-     * Converts ASN.1 elements to Java objects.
-     */
-    private Object parseAsn1Element(ASN1Encodable element) {
+    
+    private Object parseAsn1Element(ASN1Encodable element) throws ParseException {
         if (element instanceof ASN1Integer) {
             return ((ASN1Integer) element).getValue();
         } else if (element instanceof ASN1OctetString) {
-            return ((ASN1OctetString) element).getString();
+       return new String(((ASN1OctetString) element).getOctets(), StandardCharsets.UTF_8);
         } else if (element instanceof ASN1UTCTime) {
             return ((ASN1UTCTime) element).getAdjustedDate();
         } else if (element instanceof ASN1Sequence) {

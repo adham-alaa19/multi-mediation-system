@@ -19,24 +19,23 @@ public class DeduplicationHandler extends MediationHandler {
     protected MediationStepResult handleContext(MediationContext context) {
         try {
             String rawKey = context.getAsString("msisdn") + "_" + context.getAsString("timestamp");
-
             if (rawKey == null || rawKey.trim().isEmpty()) {
-                return new MediationStepResult(context, false, " Missing key fields");
+                return new MediationStepResult(context, true, "Skipped due to missing key fields");
             }
 
             String hash = computeSHA256(rawKey);
 
             if (portalClient.checkHashExists(hash)) {
-                System.out.println("Duplicate record: " + hash);
-                return new MediationStepResult(context, false, " Duplicate record");
+                System.out.println("⚠️ Duplicate record: " + hash);
+                return new MediationStepResult(context, true, "Duplicate record skipped");
             }
 
             portalClient.saveHash(hash);
-            return new MediationStepResult(context, true, "Unique record");
+            return new MediationStepResult(context, true, "Deduplication passed");
 
         } catch (Exception e) {
             e.printStackTrace();
-            return new MediationStepResult(context, false, "Exception in deduplication: " + e.getMessage());
+            return new MediationStepResult(context, false, "Error during deduplication: " + e.getMessage());
         }
     }
 
