@@ -76,4 +76,31 @@ public class PortalClient {
             client.close();
         }
     }
+    public boolean checkHashExists(String hashValue) {
+    Client client = ClientBuilder.newClient();
+    try {
+        Map<String, Boolean> result = client
+                .target(BASE_URL)
+                .path("/files/cdr/dup/" + hashValue)
+                .request(MediaType.APPLICATION_JSON)
+                .get(new GenericType<Map<String, Boolean>>() {});
+        return result.getOrDefault("exists", false);
+    } finally {
+        client.close();
+    }
+}
+
+public void saveHash(String hashValue) {
+    Client client = ClientBuilder.newClient();
+    try {
+        Map<String, String> data = new HashMap<>();
+        data.put("hashValue", hashValue);
+        client.target(BASE_URL)
+                .path("/files/hash")
+                .request(MediaType.APPLICATION_JSON)
+                .post(Entity.json(data));
+    } finally {
+        client.close();
+    }
+}
 }
