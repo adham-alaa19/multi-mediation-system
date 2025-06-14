@@ -42,7 +42,7 @@ interface DistributorStrategy {
 
 /**
  * Implements the DistributorStrategy to distribute (upload) files to a remote
- * server using SCP. This uses JSch's 'exec' channel to run the 'scp -t' command.
+ * server using SCP. This uses JSch's 'exec' channel to run the 'scp -t ' command.
  *
  * @author theda
  */

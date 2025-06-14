@@ -1,8 +1,24 @@
 /*
- * This class is part of a mediation system and is responsible for collecting
- * files from a remote server using the SCP protocol.
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
+ 
+//package com.mycompany.my_mediation;
 package com.iti.collectors;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 // --- Maven Dependency ---
 // To use this code, you need to add the JSch library to your project.
@@ -14,7 +30,7 @@ package com.iti.collectors;
 //     <version>0.1.55</version>
 // </dependency>
 
-import com.iti.models.ServerConfig;
+
 import com.jcraft.jsch.*;
 import java.io.*;
 import java.nio.file.Files;
