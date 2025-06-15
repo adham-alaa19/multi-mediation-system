@@ -1,10 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
- 
-//package com.mycompany.my_mediation;
-package com.iti.collectors;
+
+package com.mycompany.my_mediation;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -51,9 +47,8 @@ interface CollectorStrategy {
      * @param config The configuration of the server to collect from.
      * @return A list of File objects representing the locally downloaded files.
      */
-    List<File> collect(ServerConfig config);
+ List<FileInputStream> collect(ServerConfig config);
 }
-
 
 /**
  * Implements the CollectorStrategy to collect files from a remote server using SCP.
@@ -67,75 +62,74 @@ interface CollectorStrategy {
 public class SCPCollector implements CollectorStrategy {
 
     private static final Logger LOGGER = Logger.getLogger(SCPCollector.class.getName());
-    // Defines a local directory where collected files will be temporarily stored.
     private static final String LOCAL_TEMP_DIR = "temp/collected/";
 
-    /**
-     * Collects files from a remote server using SCP.
-     *
-     * @param config The server configuration containing connection details and paths.
-     * @return A list of locally downloaded File objects.
-     */
     @Override
-    public List<File> collect(ServerConfig config) {
-        List<File> collectedFiles = new ArrayList<>();
+    public List<FileInputStream> collect(ServerConfig config) {
+        List<FileInputStream> collectedStreams = new ArrayList<>();
+        List<File> tempFiles = new ArrayList<>(); // To track files for cleanup
         JSch jsch = new JSch();
         Session session = null;
 
         try {
-            // --- 1. Establish SSH Session ---
-            LOGGER.log(Level.INFO, "Connecting to {0}@{1}...", new Object[]{config.getUsername(), config.getHostname()});
+            // 1. Establish SSH Session
             session = jsch.getSession(config.getUsername(), config.getHostname(), config.getPort());
             session.setPassword(config.getPassword());
-            // Important: Disable strict host key checking for non-interactive sessions.
-            // In a production environment, it's better to manage a known_hosts file.
             session.setConfig("StrictHostKeyChecking", "no");
             session.connect();
-            LOGGER.log(Level.INFO, "Session connected.");
 
-            // --- 2. Prepare Local Directory ---
+            // 2. Prepare Local Directory
             Files.createDirectories(Path.of(LOCAL_TEMP_DIR));
 
-            // --- 3. List Remote Files using 'exec' channel ---
+            // 3. List Remote Files
             List<String> fileNames = listRemoteFiles(session, config.getCdr_target_path());
             if (fileNames.isEmpty()) {
-                LOGGER.log(Level.INFO, "No new files to collect from {0}", config.getCdr_target_path());
-                return collectedFiles;
+                return collectedStreams;
             }
-            
-            LOGGER.log(Level.INFO, "Found {0} files to collect.", fileNames.size());
 
-            // --- 4. Download and Move Each File ---
+            // 4. Process Each File
             for (String fileName : fileNames) {
-                String remoteFilePath = config.getCdr_target_path() + "/" + fileName;
                 File localFile = new File(LOCAL_TEMP_DIR + fileName);
+                tempFiles.add(localFile); // Track for cleanup
 
-                if (downloadFile(session, remoteFilePath, localFile)) {
-                    // If download is successful, move the remote file
-                    if (moveRemoteFile(session, config.getCdr_target_path(), config.getCdr_processed_path(), fileName)) {
-                        collectedFiles.add(localFile);
+                if (downloadFile(session, config.getCdr_target_path() + "/" + fileName, localFile)) {
+                    if (moveRemoteFile(session, config.getCdr_target_path(), 
+                                      config.getCdr_processed_path(), fileName)) {
+                        collectedStreams.add(new FileInputStream(localFile));
                     } else {
-                        // If move fails, delete the local copy to prevent processing an orphaned file.
-                        LOGGER.log(Level.WARNING, "Could not move remote file {0}. Deleting local copy to prevent re-processing.", fileName);
                         localFile.delete();
+                        tempFiles.remove(localFile);
                     }
                 }
             }
-
-        } catch (JSchException | IOException | InterruptedException e) {
-            LOGGER.log(Level.SEVERE, "An error occurred during SCP collection.", e);
-            // In case of a major error, it might be wise to clean up partially downloaded files
-            collectedFiles.forEach(File::delete);
-            collectedFiles.clear();
+        } catch (Exception e) {
+            // Cleanup on error
+            closeAllStreams(collectedStreams);
+            deleteTempFiles(tempFiles);
+            throw new RuntimeException("Collection failed", e);
         } finally {
-            if (session != null && session.isConnected()) {
-                session.disconnect();
-                LOGGER.log(Level.INFO, "Session disconnected.");
-            }
+            if (session != null) session.disconnect();
         }
-        return collectedFiles;
+        return collectedStreams;
     }
 
+    private void closeAllStreams(List<FileInputStream> streams) {
+        streams.forEach(stream -> {
+            try {
+                stream.close();
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "Failed to close stream", e);
+            }
+        });
+    }
+
+    private void deleteTempFiles(List<File> files) {
+        files.forEach(file -> {
+            if (!file.delete()) {
+                LOGGER.log(Level.WARNING, "Failed to delete temp file: {0}", file.getPath());
+            }
+        });
+    }
     /**
      * Executes 'ls -p' on the remote server to list files in a directory.
      * The '-p' flag is used to append a '/' to directory names, allowing us to easily filter them out.
@@ -287,5 +281,5 @@ public class SCPCollector implements CollectorStrategy {
             LOGGER.log(Level.SEVERE, "SCP Protocol Error: {0}", sb.toString());
         }
         return b;
-    }
-}
+    }}
+
