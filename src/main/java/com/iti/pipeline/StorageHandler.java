@@ -22,7 +22,7 @@ public class StorageHandler extends MediationHandler {
     protected MediationStepResult handleContext(MediationContext context) {
         try {
             String fileName = context.getAsString("fileName");
-            String processedAtStr = context.getAsString("processedAt");
+            String processedAtStr = context.getAsString("start_time");
 
             if (fileName == null) {
                 return new MediationStepResult(context, false, "Missing file name");
@@ -30,7 +30,6 @@ public class StorageHandler extends MediationHandler {
 
             Path sourceFile = stagingDir.resolve(fileName);
 
-           
             Instant fileDate = processedAtStr != null
                     ? Instant.parse(processedAtStr)
                     : Instant.now();
@@ -40,10 +39,8 @@ public class StorageHandler extends MediationHandler {
 
             Files.move(sourceFile, archivePath, StandardCopyOption.REPLACE_EXISTING);
 
-         
             portalClient.updateFileStatus(fileName, "ARCHIVED", archivePath.toString());
 
-        
             context.setField("archivePath", archivePath.toString());
             context.setField("archivedAt", Instant.now().toString());
 

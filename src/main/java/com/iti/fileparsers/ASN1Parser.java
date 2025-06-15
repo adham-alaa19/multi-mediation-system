@@ -29,10 +29,10 @@ public class ASN1Parser {
             ASN1InputStream asn1Input = new ASN1InputStream(is);
             ASN1Primitive asn1Object = asn1Input.readObject();
             
-            if (asn1Object instanceof ASN1Sequence) {
-                parseAsn1Sequence((ASN1Sequence) asn1Object, cdrMap);
+            if (asn1Object instanceof ASN1Sequence aSN1Sequence) {
+                parseAsn1Sequence(aSN1Sequence, cdrMap);
             } else {
-                LOGGER.warning("Unsupported ASN.1 type: " + asn1Object.getClass().getSimpleName());
+                LOGGER.log(Level.WARNING, "Unsupported ASN.1 type: {0}", asn1Object.getClass().getSimpleName());
             }
             
         } catch (Exception e) {
@@ -53,10 +53,9 @@ public class ASN1Parser {
             ASN1Encodable element = elements.nextElement();
             String fieldName = "field_" + fieldIndex++; // Default field naming
             
-            if (element instanceof ASN1TaggedObject) {
-                // Handle explicitly tagged fields (common in telecom CDRs)
-                ASN1TaggedObject tagged = (ASN1TaggedObject) element;
-                fieldName = "tag_" + tagged.getTagNo();
+            if (element instanceof ASN1TaggedObject tagged) {
+// Handle explicitly tagged fields (common in telecom CDRs)
+                                fieldName = "tag_" + tagged.getTagNo();
                 element = tagged.getObject();
             }
             
@@ -66,15 +65,15 @@ public class ASN1Parser {
 
     
     private Object parseAsn1Element(ASN1Encodable element) throws ParseException {
-        if (element instanceof ASN1Integer) {
-            return ((ASN1Integer) element).getValue();
-        } else if (element instanceof ASN1OctetString) {
-       return new String(((ASN1OctetString) element).getOctets(), StandardCharsets.UTF_8);
-        } else if (element instanceof ASN1UTCTime) {
-            return ((ASN1UTCTime) element).getAdjustedDate();
-        } else if (element instanceof ASN1Sequence) {
+        if (element instanceof ASN1Integer aSN1Integer) {
+            return aSN1Integer.getValue();
+        } else if (element instanceof ASN1OctetString aSN1OctetString) {
+       return new String(aSN1OctetString.getOctets(), StandardCharsets.UTF_8);
+        } else if (element instanceof ASN1UTCTime aSN1UTCTime) {
+            return aSN1UTCTime.getAdjustedDate();
+        } else if (element instanceof ASN1Sequence aSN1Sequence) {
             Map<String, Object> nestedMap = new LinkedHashMap<>();
-            parseAsn1Sequence((ASN1Sequence) element, nestedMap);
+            parseAsn1Sequence(aSN1Sequence, nestedMap);
             return nestedMap;
         } else {
             // Fallback: Use ASN.1 dump for unsupported types

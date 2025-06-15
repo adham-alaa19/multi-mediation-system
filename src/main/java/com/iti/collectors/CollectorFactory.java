@@ -16,7 +16,7 @@ public class CollectorFactory {
             case "SCP":
                 return new SCPCollector();
             case "REST":
-                return new RESTCollector();
+                return new RESTCollector() {};
             default:
                 throw new IllegalArgumentException("Unsupported collector method: " + method);
         }

@@ -8,50 +8,35 @@ import java.util.List;
 
 public class EnrichmentHandler extends MediationHandler {
 
-    private static final List<String> ALLOWED_SERVICE_TYPES = Arrays.asList("DATA", "SMS", "CALL");
+    private static final List<String> ALLOWED_SERVICE_TYPES = Arrays.asList("DATA", "SMS", "VOICE");
 
     @Override
     protected MediationStepResult handleContext(MediationContext context) {
         // Check required fields
-        if (context.getAsString("msisdn") == null || context.getAsString("timestamp") == null) {
-            return new MediationStepResult(context, false, "Missing required fields (msisdn or timestamp)");
+        if (context.getAsString("msisdn") == null || context.getAsString("start_time") == null) {
+            return new MediationStepResult(context, false, "Missing msisdn or start_time");
         }
 
-        // Check usage value
+        // Validate usage
         Double usage = context.getAsDouble("usage");
         if (usage == null || usage <= 0) {
-            return new MediationStepResult(context, false, "Invalid usage (zero or negative)");
+            return new MediationStepResult(context, false, "Invalid or missing usage");
         }
 
-        // Validate timestamp format and range
-        String timestampStr = context.getAsString("timestamp");
+        // Validate timestamp
         try {
-            Instant recordTime = Instant.parse(timestampStr);
-            Instant now = Instant.now();
-
-            if (recordTime.isAfter(now)) {
-                return new MediationStepResult(context, false, "Timestamp is in the future");
-            }
-
-            Instant tooOld = now.minusSeconds(60 * 60 * 24 * 365); // 1 year old
-            if (recordTime.isBefore(tooOld)) {
-                return new MediationStepResult(context, false, "Timestamp is too old");
-            }
-
+            Instant.parse(context.getAsString("start_time"));
+            Instant.parse(context.getAsString("end_time"));
         } catch (DateTimeParseException e) {
-            return new MediationStepResult(context, false, "Invalid timestamp format");
+            return new MediationStepResult(context, false, "Invalid date format in timestamps");
         }
 
         // Validate service type
-        String serviceType = context.getServiceType();
-        if (serviceType == null) {
-            serviceType = context.getAsString("serviceType");
-        }
+        String serviceType = context.getAsString("serviceType");
         if (serviceType == null || !ALLOWED_SERVICE_TYPES.contains(serviceType.toUpperCase())) {
-            return new MediationStepResult(context, false, "Invalid or unsupported service type");
+            return new MediationStepResult(context, false, "Unsupported service type");
         }
 
-        // Passed all filters
-        return new MediationStepResult(context, true, "Record passed filtering");
+        return new MediationStepResult(context, true, "Enrichment passed");
     }
 }
