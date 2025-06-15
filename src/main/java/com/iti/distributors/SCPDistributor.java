@@ -1,7 +1,3 @@
-/*
- * This class is part of a mediation system and is responsible for distributing
- * (uploading) processed files to a remote server using the SCP protocol.
- */
 package com.iti.distributors;
 
 // --- Maven Dependency ---
@@ -13,6 +9,7 @@ package com.iti.distributors;
 //     <artifactId>jsch</artifactId>
 //     <version>0.1.55</version>
 // </dependency>
+
 
 import com.iti.models.ServerConfig;
 import com.jcraft.jsch.*;
