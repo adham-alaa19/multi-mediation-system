@@ -1,5 +1,7 @@
-package com.mycompany.my_mediation;
+package com.iti.collectors;
 
+import com.iti.collectors.SCPCollector;
+import com.iti.models.ServerConfig;
 import java.io.File;
 import java.util.List;
 
