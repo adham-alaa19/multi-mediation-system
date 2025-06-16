@@ -11,14 +11,16 @@ package com.iti.collectors;
 public class CollectorFactory {
     public static CollectorStrategy createCollector(String method) {
         switch (method.toUpperCase()) {
-            case "SFTP":
+            case "SFTP" -> {
                 return new SFTPCollector();
-            case "SCP":
+            }
+            case "SCP" -> {
                 return new SCPCollector();
-            case "REST":
+            }
+            case "REST" -> {
                 return new RESTCollector() {};
-            default:
-                throw new IllegalArgumentException("Unsupported collector method: " + method);
+            }
+            default -> throw new IllegalArgumentException("Unsupported collector method: " + method);
         }
     }
 }

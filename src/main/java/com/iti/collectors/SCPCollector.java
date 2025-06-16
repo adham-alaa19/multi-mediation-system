@@ -1,6 +1,6 @@
+package com.iti.collectors;
 
-package com.mycompany.my_mediation;
-
+import com.iti.models.ServerConfig;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -41,15 +41,15 @@ import java.util.logging.Logger;
  * This interface allows for different collection strategies (e.g., FTP, SFTP, SCP)
  * to be used interchangeably.
  */
-interface CollectorStrategy {
+/*interface CollectorStrategy {
     /**
      * Collects files based on the provided server configuration.
      * @param config The configuration of the server to collect from.
      * @return A list of File objects representing the locally downloaded files.
      */
- List<FileInputStream> collect(ServerConfig config);
+ /*List<FileInputStream> collect(ServerConfig config);
 }
-
+*/
 /**
  * Implements the CollectorStrategy to collect files from a remote server using SCP.
  * This implementation uses a combination of 'exec' and 'scp' channels:
@@ -102,7 +102,7 @@ public class SCPCollector implements CollectorStrategy {
                     }
                 }
             }
-        } catch (Exception e) {
+        } catch (JSchException | IOException | InterruptedException e) {
             // Cleanup on error
             closeAllStreams(collectedStreams);
             deleteTempFiles(tempFiles);

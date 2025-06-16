@@ -1,88 +1,90 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.iti.distributors;
 
 import com.iti.models.ServerConfig;
+import com.iti.engine.utils.ConfigUtil;
 import com.jcraft.jsch.*;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class SFTPDistributor implements DistributorStrategy {
 
+    private static final Logger LOGGER = Logger.getLogger(SFTPDistributor.class.getName());
+    private static final String SENT_DIR = ConfigUtil.get("archive.sent.path");
+    private static final String SENT_FAILED_DIR = ConfigUtil.get("archive.sent_failed.path");
+
     @Override
     public boolean distribute(ServerConfig config, List<File> processedFiles) {
+        if (processedFiles == null || processedFiles.isEmpty()) {
+            LOGGER.log(Level.INFO, "No files to distribute.");
+            return true;
+        }
+
+        JSch jsch = new JSch();
         Session session = null;
         ChannelSftp sftpChannel = null;
+        boolean allSuccessful = true;
 
         try {
-            // 1. Connect to SFTP server
-            JSch jsch = new JSch();
-            session = jsch.getSession(config.getUsername(), config.getIp(), config.getPort());
+            // 1. Establish SSH session
+            session = jsch.getSession(config.getUsername(), config.getHostname(), config.getPort());
             session.setPassword(config.getPassword());
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
+            LOGGER.log(Level.INFO, "SFTP session established with " + config.getHostname());
 
-            Properties configProps = new Properties();
-            configProps.put("StrictHostKeyChecking", "no");
-            session.setConfig(configProps);
-            session.connect(10000); // 10 seconds timeout
-
+            // 2. Open SFTP channel
             Channel channel = session.openChannel("sftp");
             channel.connect();
             sftpChannel = (ChannelSftp) channel;
 
-            // 2. Navigate to target path or create it
-            try {
-                sftpChannel.cd(config.getCdr_target_path());
-            } catch (SftpException e) {
-                sftpChannel.mkdir(config.getCdr_target_path());
-                sftpChannel.cd(config.getCdr_target_path());
-            }
-
-            // 3. Upload files
+            // 3. Upload each file
             for (File file : processedFiles) {
-                if (!file.isFile()) continue;
-
                 try (FileInputStream fis = new FileInputStream(file)) {
-                    sftpChannel.put(fis, file.getName());
-                }
+                    String remotePath = config.getCdr_target_path() + "/" + file.getName();
+                    sftpChannel.put(fis, remotePath);
+                    LOGGER.log(Level.INFO, "Uploaded file: " + file.getName());
 
-                // 4. Optional: Confirm file exists remotely
-                try {
-                    sftpChannel.lstat(file.getName());
-                } catch (SftpException e) {
-                    System.err.println("Upload failed or file missing remotely: " + file.getName());
-                    return false;
-                }
+                    // Archive to sent folder
+                    Files.move(file.toPath(),
+                            Paths.get(SENT_DIR, file.getName()),
+                            StandardCopyOption.REPLACE_EXISTING);
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Failed to upload file: " + file.getName(), e);
 
-                // 5. Move file to local delivered/ folder
-                File deliveredDir = new File(file.getParentFile(), "delivered");
-                if (!deliveredDir.exists()) {
-                    if (!deliveredDir.mkdir()) {
-                        System.err.println("Failed to create 'delivered' directory");
-                        return false;
+                    // Move to sent_failed
+                    try {
+                        Files.move(file.toPath(),
+                                Paths.get(SENT_FAILED_DIR, file.getName()),
+                                StandardCopyOption.REPLACE_EXISTING);
+                    } catch (IOException moveEx) {
+                        LOGGER.log(Level.SEVERE, "Failed to move file to sent_failed: " + file.getName(), moveEx);
                     }
-                }
-                File deliveredFile = new File(deliveredDir, file.getName());
-                if (!file.renameTo(deliveredFile)) {
-                    System.err.println("Failed to move file to delivered folder: " + file.getName());
-                    return false;
+
+                    allSuccessful = false;
                 }
             }
 
-            return true;
-
-        } catch (JSchException | SftpException | IOException ex) {
-            System.err.println("SFTP Distribution Error: " + ex.getMessage());
-            return false;
-
+        } catch (JSchException e) {
+            LOGGER.log(Level.SEVERE, "SFTP connection error", e);
+            allSuccessful = false;
         } finally {
-            if (sftpChannel != null && sftpChannel.isConnected()) sftpChannel.exit();
-            if (session != null && session.isConnected()) session.disconnect();
+            if (sftpChannel != null && sftpChannel.isConnected()) {
+                sftpChannel.disconnect();
+            }
+            if (session != null && session.isConnected()) {
+                session.disconnect();
+            }
+            LOGGER.log(Level.INFO, "SFTP session closed.");
         }
+
+        return allSuccessful;
     }
 }

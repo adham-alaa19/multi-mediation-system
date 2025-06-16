@@ -27,14 +27,14 @@ import java.util.logging.Logger;
  * This allows for different distribution strategies (e.g., FTP, SFTP, SCP)
  * to be used interchangeably.
  */
-interface DistributorStrategy {
+/*interface DistributorStrategy {
     /**
      * Distributes a list of processed files to a target server.
      * @param config The configuration of the server to distribute to.
      * @param processedFiles A list of local files to be uploaded.
      * @return true if the distribution of all files was successful, false otherwise.
      */
-    boolean distribute(ServerConfig config, List<File> processedFiles);
+ /*   boolean distribute(ServerConfig config, List<File> processedFiles);
 }
 
 /**

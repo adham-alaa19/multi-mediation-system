@@ -13,4 +13,5 @@ import java.io.FileInputStream;
 import java.util.List;
 public interface  CollectorStrategy {
     List<FileInputStream> collect(ServerConfig config);
+
 }

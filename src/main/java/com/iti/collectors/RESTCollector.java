@@ -86,8 +86,7 @@ public abstract class RESTCollector implements CollectorStrategy {
             multipart.close();
             response.close();
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException e) {
         } finally {
             client.close();
         }
